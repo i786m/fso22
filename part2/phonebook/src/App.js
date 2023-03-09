@@ -4,15 +4,18 @@ import { useState, useEffect } from 'react';
 import Persons from './components/Persons';
 import Filter from './components/Filter';
 import PersonForm from './components/PersonForm';
+import Notification from './components/Notification';
 
 //services
 import numberService from './services/numbers';
 
 const App = () => {
+  //state
   const [persons, setPersons] = useState([]);
   const [newName, setNewName] = useState('');
   const [newNumber, setNewNumber] = useState('');
   const [filter, setFilter] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   //initial render
   useEffect(() => {
@@ -47,10 +50,18 @@ const App = () => {
     if (!personExists) {
       numberService
         .addContact(personObject)
-        .then(returnedContact => setPersons(persons.concat(returnedContact)));
-      console.log(newName, 'added');
-      setNewName('');
-      setNewNumber('');
+        .then(returnedContact => {
+          setPersons(persons.concat(returnedContact));
+          setNewName('');
+          setNewNumber('');
+          setErrorMessage(`${newName} has been added to the directory`);
+          setTimeout(() => {
+            setErrorMessage(null);
+          }, 5000);
+        })
+        .catch(error =>
+          setErrorMessage(error.request.statusText.toLowerCase())
+        );
     }
 
     // update contact if existing in directory
@@ -64,16 +75,30 @@ const App = () => {
       ) &&
         numberService
           .updateContact(existingId, personObject)
-          .then(returnedPerson =>
+          .then(returnedPerson => {
             setPersons(
               persons.map(person =>
                 person.id === existingId ? returnedPerson : person
               )
-            )
-          );
-      setNewName('');
-      setNewNumber('');
-      console.log(existingId, 'updated');
+            );
+            setNewName('');
+            setNewNumber('');
+            setErrorMessage(
+              `Phone number for ${personObject.name} has been updated`
+            );
+            setTimeout(() => {
+              setErrorMessage(null);
+            }, 5000);
+          })
+          .catch(error => {
+            setErrorMessage(
+              `${personObject.name} has previously been deleted from the directory. Updating...`
+            );
+            setTimeout(() => {
+              setPersons(persons.filter(p => p.id !== existingId));
+              setErrorMessage(null);
+            }, 5000);
+          });
     }
   };
 
@@ -85,12 +110,28 @@ const App = () => {
     ) &&
       numberService
         .deleteContact(id)
-        .then(setPersons(persons.filter(p => p.id !== id)));
+        .then(res => {
+          setPersons(persons.filter(p => p.id !== id));
+          setErrorMessage(`${deletedName} has been removed from the directory`);
+          setTimeout(() => {
+            setErrorMessage(null);
+          }, 5000);
+        })
+        .catch(error => {
+          setErrorMessage(
+            `${deletedName} ${error.request.statusText.toLowerCase()} in the directory. Updating ...`
+          );
+          setTimeout(() => {
+            setPersons(persons.filter(p => p.id !== id));
+            setErrorMessage(null);
+          }, 5000);
+        });
   };
 
   return (
     <main>
       <h1>Phonebook</h1>
+      <Notification message={errorMessage} />
       <Filter filter={filter} onChange={handleFilterChange} />
       <h2>Add a new contact</h2>
       <PersonForm
