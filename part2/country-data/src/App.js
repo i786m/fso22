@@ -10,6 +10,7 @@ const App = () => {
 
 const [filter, setFilter] = useState('')
 const [countries,setCountries]=useState(null)
+ 
   const handleFilterChange = event => {
     setFilter(event.target.value);
   };
@@ -26,7 +27,7 @@ useEffect(() => {
     <main>
       <h1>Data for Countries</h1>
       <Filter filter={filter} onChange={handleFilterChange} />
-      {countries ? <Countries  countries={countries} filter={filter}/> : null}
+      {countries ? <Countries  countries={countries} filter={filter} setFilter={setFilter}/> : null}
     </main>
     </>
   )
